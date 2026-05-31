@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ditto · Dia Call Monitor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Caveat:wght@400;600&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: #f4f1eb;
+  color: #1f1e1b;
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ─────────────────────────────── */
+.topbar {
+  background: #fff;
+  border-bottom: 1.5px solid #e4e0d8;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.top-left { display: flex; align-items: center; gap: 14px; }
+.logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #1f3d2b;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 700; color: #c8e6c9;
+  letter-spacing: -0.5px;
+}
+.brand-name { font-size: 15px; font-weight: 600; color: #1f1e1b; }
+.brand-sub { font-size: 11px; color: #9e9a90; margin-top: 1px; }
+.divider-v { width: 1px; height: 26px; background: #dedad2; }
+.page-label { font-size: 12px; color: #6b6760; font-weight: 500; }
+.top-right { display: flex; align-items: center; gap: 10px; }
+.tab-group { display: flex; border: 1.5px solid #dedad2; border-radius: 6px; overflow: hidden; }
+.tab {
+  padding: 5px 12px; font-size: 11.5px; font-weight: 500;
+  color: #6b6760; cursor: pointer;
+  background: #fff; border: none;
+  border-right: 1.5px solid #dedad2;
+  transition: background 0.15s;
+}
+.tab:last-child { border-right: none; }
+.tab.active { background: #1f3d2b; color: #c8e6c9; }
+.date-pill {
+  font-size: 11px; color: #9e9a90;
+  background: #f4f1eb; border: 1.5px solid #dedad2;
+  padding: 5px 10px; border-radius: 20px;
+}
+.live-pill {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; color: #1f6e3a;
+  background: #eaf4ed; border: 1.5px solid #b2d8bc;
+  padding: 5px 10px; border-radius: 20px;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #2e9c52;
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── ALERT BANNER ───────────────────────── */
+.alert-banner {
+  background: #fff8ec;
+  border-bottom: 1.5px solid #f5d78a;
+  padding: 9px 24px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12.5px; color: #7a4f00;
+}
+.alert-banner strong { font-weight: 600; }
+.alert-time { margin-left: auto; font-size: 11px; color: #b07b30; }
+.alert-x {
+  font-size: 14px; color: #b07b30; cursor: pointer;
+  padding: 0 4px; opacity: 0.7;
+}
+.alert-x:hover { opacity: 1; }
+
+/* ── LAYOUT ─────────────────────────────── */
+.page { padding: 20px 24px; max-width: 1380px; }
+
+/* ── SECTION LABELS ─────────────────────── */
+.section-row {
+  display: flex; align-items: center; gap: 10px;
+  margin: 22px 0 12px;
+}
+.section-row:first-child { margin-top: 0; }
+.section-lbl {
+  font-size: 10.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: #9e9a90;
+}
+.section-line { flex: 1; height: 1px; background: #e4e0d8; }
+
+/* ── CARD BASE ──────────────────────────── */
+.card {
+  background: #fff;
+  border: 1.5px solid #e4e0d8;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.card-head {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid #eceae4;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-title {
+  font-size: 12.5px; font-weight: 600; color: #1f1e1b;
+}
+.card-sub { font-size: 11px; color: #9e9a90; }
+.card-body { padding: 14px 16px; }
+
+/* ── KPI STRIP ──────────────────────────── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+.kpi {
+  background: #fff;
+  border: 1.5px solid #e4e0d8;
+  border-radius: 10px;
+  padding: 14px 16px;
+  position: relative;
+}
+.kpi-name { font-size: 11px; color: #6b6760; font-weight: 500; margin-bottom: 6px; }
+.kpi-val {
+  font-size: 30px; font-weight: 300; line-height: 1;
+  margin-bottom: 7px; letter-spacing: -1px;
+}
+.kpi.good .kpi-val  { color: #1a5c30; }
+.kpi.warn .kpi-val  { color: #a05c00; }
+.kpi.bad  .kpi-val  { color: #8b2020; }
+.kpi.blue .kpi-val  { color: #1a3a6b; }
+.kpi.teal .kpi-val  { color: #1a5a55; }
+.kpi-foot {
+  font-size: 11px; color: #9e9a90;
+  display: flex; align-items: center; gap: 5px;
+}
+.delta {
+  font-size: 10.5px; font-weight: 600;
+  padding: 1px 5px; border-radius: 4px;
+}
+.d-up   { background: #eaf4ed; color: #1a5c30; }
+.d-down { background: #fdf0f0; color: #8b2020; }
+.d-flat { background: #fff8ec; color: #a05c00; }
+
+/* hand-drawn underline accent */
+.kpi::after {
+  content: '';
+  position: absolute; bottom: 0; left: 16px; right: 16px; height: 3px;
+  border-radius: 0 0 8px 8px;
+}
+.kpi.good::after { background: #c8e6c9; }
+.kpi.warn::after { background: #fde9b8; }
+.kpi.bad::after  { background: #fdd0d0; }
+.kpi.blue::after { background: #c5d8f8; }
+.kpi.teal::after { background: #b2e0dc; }
+
+/* ── MAIN GRID ──────────────────────────── */
+.mid-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.15fr 0.95fr;
+  gap: 12px;
+}
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── CALL LOG ───────────────────────────── */
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #9e9a90;
+  padding: 0 12px 8px; text-align: left;
+  border-bottom: 1px solid #eceae4;
+  background: #faf9f6;
+}
+.log-table td {
+  padding: 8px 12px;
+  border-bottom: 1px dashed #eceae4;
+  vertical-align: middle; font-size: 12px; color: #3a3834;
+}
+.log-table tr:last-child td { border-bottom: none; }
+.log-table tr:hover td { background: #faf9f6; }
+.lead-n { font-weight: 600; color: #1f1e1b; }
+.type-fc  { font-size: 10px; font-weight: 600; color: #1a5c30; background: #eaf4ed; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+.type-ns  { font-size: 10px; font-weight: 600; color: #a05c00; background: #fff3d6; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+.mono { font-family: 'Courier New', monospace; font-size: 11.5px; color: #6b6760; }
+.ob {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 20px; white-space: nowrap; display: inline-block;
+}
+.ob-booked     { background: #eaf4ed; color: #1a5c30; }
+.ob-rescheduled{ background: #fff3d6; color: #a05c00; }
+.ob-escalated  { background: #e8eef9; color: #1a3a6b; }
+.ob-dnc        { background: #f4f1eb; color: #9e9a90; }
+.ob-noans      { background: #fdf0f0; color: #8b2020; }
+.conf-wrap { display: flex; align-items: center; gap: 5px; }
+.conf-bar-bg { width: 48px; height: 4px; background: #eceae4; border-radius: 2px; overflow: hidden; }
+.conf-bar { height: 100%; border-radius: 2px; }
+.cb-high { background: #2e9c52; }
+.cb-mid  { background: #e09c30; }
+.cb-low  { background: #d04040; }
+.conf-pct { font-size: 10.5px; color: #9e9a90; font-family: 'Courier New', monospace; }
+
+/* ── FUNNEL ─────────────────────────────── */
+.funnel-rows { display: flex; flex-direction: column; gap: 5px; }
+.funnel-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.f-label { font-size: 11px; color: #6b6760; width: 118px; flex-shrink: 0; text-align: right; }
+.f-bar-wrap { flex: 1; height: 22px; position: relative; }
+.f-bar {
+  height: 100%; border-radius: 4px;
+  display: flex; align-items: center;
+  padding: 0 9px;
+  font-size: 11px; font-weight: 600;
+  justify-content: space-between;
+}
+.f1 { background: #1f3d2b; color: #c8e6c9; width: 100%; }
+.f2 { background: #2d5a3d; color: #c8e6c9; width: 82%; }
+.f3 { background: #d4911f; color: #fff8ec; width: 55%; }
+.f4 { background: #1a3a6b; color: #dce8fb; width: 44%; }
+.f5 { background: #4a7c5a; color: #d4eddc; width: 28%; }
+.f-pct { font-size: 10.5px; color: #9e9a90; width: 30px; text-align: right; font-family: 'Courier New', monospace; }
+
+.sep { height: 1px; background: #eceae4; margin: 12px 0; }
+
+/* outcome mini bars */
+.mini-bar-row { display: flex; flex-direction: column; gap: 7px; }
+.mbr { display: flex; align-items: center; gap: 8px; }
+.mb-lbl { font-size: 11px; color: #6b6760; width: 80px; text-align: right; }
+.mb-track { flex: 1; height: 16px; background: #f4f1eb; border-radius: 3px; overflow: hidden; position: relative; }
+.mb-fill {
+  height: 100%; border-radius: 3px;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 7px; font-size: 10px; font-weight: 600;
+}
+.mb-g { background: #c8e6c9; color: #1a5c30; }
+.mb-a { background: #fde9b8; color: #a05c00; }
+.mb-r { background: #fdd0d0; color: #8b2020; }
+
+/* ── ALERTS PANEL ───────────────────────── */
+/* sticky-note style */
+.alert-feed { display: flex; flex-direction: column; gap: 0; }
+.alert-note {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 11px 14px;
+  border-bottom: 1px dashed #eceae4;
+  transition: background 0.1s;
+}
+.alert-note:last-child { border-bottom: none; }
+.alert-note:hover { background: #faf9f6; }
+.anote-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  margin-top: 3px; flex-shrink: 0;
+}
+.dot-red    { background: #d04040; }
+.dot-amber  { background: #e09c30; }
+.dot-green  { background: #2e9c52; }
+.anote-body { flex: 1; }
+.anote-msg { font-size: 12px; color: #3a3834; line-height: 1.45; }
+.anote-msg strong { font-weight: 600; color: #1f1e1b; }
+.anote-ts { font-size: 10.5px; color: #b0ac9e; margin-top: 3px; }
+/* handwritten action tag */
+.anote-action {
+  font-family: 'Caveat', cursive;
+  font-size: 12px; color: #7a5a20;
+  background: #fff8ec; border: 1px solid #f5d78a;
+  padding: 1px 7px; border-radius: 3px;
+  white-space: nowrap; align-self: center;
+  margin-left: 6px;
+}
+
+/* ── MINI STAT GRID ─────────────────────── */
+.mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.mini-stat {
+  background: #faf9f6; border: 1.5px solid #e4e0d8;
+  border-radius: 8px; padding: 10px 12px;
+}
+.ms-val { font-size: 19px; font-weight: 300; letter-spacing: -0.5px; color: #1f1e1b; line-height: 1; margin-bottom: 3px; }
+.ms-lbl { font-size: 10px; color: #9e9a90; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── SVG CHART ──────────────────────────── */
+svg.chart { width: 100%; overflow: visible; }
+
+/* ── HEATMAP ────────────────────────────── */
+.hmap { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 5px; }
+.hcell {
+  aspect-ratio: 1; border-radius: 3px; cursor: default;
+  transition: transform 0.1s; position: relative;
+}
+.hcell:hover { transform: scale(1.25); z-index: 2; }
+.hmap-labels {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: #9e9a90; font-family: 'Courier New', monospace;
+}
+.hmap-note { font-size: 11px; color: #6b6760; margin-top: 5px; }
+
+/* ── TRUST SECTION ──────────────────────── */
+.trust-rows { display: flex; flex-direction: column; gap: 11px; }
+.trust-row {}
+.tr-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.tr-name { font-size: 12px; color: #3a3834; }
+.tr-val { font-size: 11.5px; font-weight: 600; font-family: 'Courier New', monospace; }
+.tr-track { height: 5px; background: #f4f1eb; border-radius: 3px; overflow: hidden; border: 1px solid #eceae4; }
+.tr-fill { height: 100%; border-radius: 3px; }
+.tf-good { background: #2e9c52; }
+.tf-warn { background: #e09c30; }
+.tf-bad  { background: #d04040; }
+
+/* NPS sparkline label */
+.nps-lbl { display: flex; justify-content: space-between; font-size: 10px; color: #b0ac9e; margin-top: 4px; font-family: 'Courier New', monospace; }
+
+/* ── ADVISOR TABLE ──────────────────────── */
+.adv-table { width: 100%; border-collapse: collapse; }
+.adv-table th {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #9e9a90;
+  padding: 0 10px 8px; text-align: left;
+  border-bottom: 1px solid #eceae4; background: #faf9f6;
+}
+.adv-table td {
+  padding: 8px 10px; border-bottom: 1px dashed #eceae4;
+  vertical-align: middle; font-size: 12px; color: #3a3834;
+}
+.adv-table tr:last-child td { border-bottom: none; }
+.avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #fff;
+  margin-right: 7px; flex-shrink: 0;
+}
+.adv-name-cell { display: flex; align-items: center; }
+.adv-nm { font-weight: 600; color: #1f1e1b; font-size: 12px; }
+.adv-type { font-size: 10px; color: #9e9a90; }
+.queue-num { font-size: 13px; font-weight: 600; font-family: 'Courier New', monospace; }
+.q-ok   { color: #1a5c30; }
+.q-busy { color: #a05c00; }
+.q-over { color: #8b2020; }
+.next-slot { font-size: 11px; font-family: 'Courier New', monospace; color: #6b6760; }
+
+/* overload warning — handwritten style */
+.overload-note {
+  padding: 10px 14px; border-top: 1px solid #eceae4;
+  background: #fff8ec;
+}
+.overload-text {
+  font-family: 'Caveat', cursive;
+  font-size: 13.5px; color: #7a4f00;
+  margin-bottom: 8px;
+}
+.btn-row { display: flex; gap: 8px; }
+.btn {
+  font-size: 11px; font-weight: 600; padding: 5px 12px;
+  border-radius: 6px; cursor: pointer; border: 1.5px solid;
+}
+.btn-primary { background: #1f3d2b; color: #c8e6c9; border-color: #1f3d2b; }
+.btn-secondary { background: #fff; color: #6b6760; border-color: #dedad2; }
+
+/* ── SCROLLBAR ──────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #f4f1eb; }
+::-webkit-scrollbar-thumb { background: #dedad2; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ── TOP BAR ─────────────────────── -->
+<div class="topbar">
+  <div class="top-left">
+    <div class="logo">Di</div>
+    <div>
+      <div class="brand-name">Ditto</div>
+      <div class="brand-sub">AI Caller · Dia</div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="page-label">Sales Manager View</div>
+  </div>
+  <div class="top-right">
+    <div class="tab-group">
+      <div class="tab active">Today</div>
+      <div class="tab">7d</div>
+      <div class="tab">30d</div>
+    </div>
+    <div class="date-pill">Thu 21 May 2026 &nbsp;·&nbsp; 11:42 AM</div>
+    <div class="live-pill"><div class="live-dot"></div> Live</div>
+  </div>
+</div>
+
+<!-- ── ALERT BANNER ────────────────── -->
+<div class="alert-banner" id="alertBanner">
+  <span>⚠</span>
+  <span><strong>No-show rate at 38%</strong> — threshold is 30%. Recovery calls auto-triggered for 47 leads. Check the advisor queue.</span>
+  <span class="alert-time">11:39 AM</span>
+  <span class="alert-x" onclick="document.getElementById('alertBanner').style.display='none'">✕</span>
+</div>
+
+<div class="page">
+
+  <!-- ── KPI STRIP ─────────────────── -->
+  <div class="section-row">
+    <span class="section-lbl">Today at a glance</span>
+    <div class="section-line"></div>
+    <span style="font-size:11px;color:#b0ac9e;">refreshes every 60s</span>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi good">
+      <div class="kpi-name">Consultations Booked</div>
+      <div class="kpi-val">142</div>
+      <div class="kpi-foot"><span class="delta d-up">↑ 11%</span> vs yesterday</div>
+    </div>
+    <div class="kpi warn">
+      <div class="kpi-name">Lead → Contact Rate</div>
+      <div class="kpi-val">67%</div>
+      <div class="kpi-foot"><span class="delta d-down">↓ 4%</span> target: 72%</div>
+    </div>
+    <div class="kpi bad">
+      <div class="kpi-name">No-Show Rate</div>
+      <div class="kpi-val">34%</div>
+      <div class="kpi-foot"><span class="delta d-down">↑ 8%</span> threshold: 30%</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-name">Advisor Hours Saved</div>
+      <div class="kpi-val">18h</div>
+      <div class="kpi-foot"><span class="delta d-up">↑ 3h</span> vs 7-day avg</div>
+    </div>
+    <div class="kpi teal">
+      <div class="kpi-name">Post-AI CSAT</div>
+      <div class="kpi-val">4.6</div>
+      <div class="kpi-foot"><span class="delta d-flat">→ flat</span> /5 · n=84 surveys</div>
+    </div>
+  </div>
+
+  <!-- ── MID GRID ──────────────────── -->
+  <div class="section-row" style="margin-top:22px;">
+    <span class="section-lbl">Calls &amp; Funnel</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="mid-grid">
+
+    <!-- CALL LOG -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Live Call Log</span>
+        <span class="card-sub">212 calls today &nbsp;·&nbsp; updates every 30s</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Lead</th>
+              <th>Type</th>
+              <th>Duration</th>
+              <th>Outcome</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">11:41</td>
+              <td><span class="lead-n">Priya M.</span></td>
+              <td><span class="type-fc">First connect</span></td>
+              <td class="mono">1m 12s</td>
+              <td><span class="ob ob-booked">Booked</span></td>
+              <td><div class="conf-wrap"><div class="conf-bar-bg"><div class="conf-bar cb-high" style="width:92%"></div></div><span class="conf-pct">92%</span></div></td>
+            </tr>
+            <tr>
+              <td class="mono">11:38</td>
+              <td><span class="lead-n">Ankit S.</span></td>
+              <td><span class="type-ns">No-show rcvry</span></td>
+              <td class="mono">0m 48s</td>
+              <td><span class="ob ob-rescheduled">Rescheduled</span></td>
+              <td><div class="conf-wrap"><div class="conf-bar-bg"><div class="conf-bar cb-mid" style="width:71%"></div></div><span class="conf-pct">71%</span></div></td>
+            </tr>
+            <tr>
+              <td class="mono">11:35</td>
+              <td><span class="lead-n">Kavya R.</span></td>
+              <td><span class="type-fc">First connect</span></td>
+              <td class="mono">2m 03s</td>
+              <td><span class="ob ob-escalated">Escalated →</span></td>
+              <td><div class="conf-wrap"><div class="conf-bar-bg"><div class="conf-bar cb-high" style="width:85%"></div></div><span class="conf-pct">85%</span></div></td>
+            </tr>
+            <tr>
+              <td class="mono">11:31</td>
+              <td><span class="lead-n">Rohan T.</span></td>
+              <td><span class="type-fc">First connect</span></td>
+              <td class="mono">0m 22s</td>
+              <td><span class="ob ob-dnc">Opted out</span></td>
+              <td><div class="conf-wrap"><div class="conf-bar-bg"><div class="conf-bar cb-low" style="width:38%"></div></div><span class="conf-pct">38%</span></div></td>
+            </tr>
+            <tr>
+              <td class="mono">11:28</td>
+              <td><span class="lead-n">Meera K.</span></td>
+              <td><span class="type-ns">No-show rcvry</span></td>
+              <td class="mono">1m 31s</td>
+              <td><span class="ob ob-booked">Booked</span></td>
+              <td><div class="conf-wrap"><div class="conf-bar-bg"><div class="conf-bar cb-high" style="width:89%"></div></div><span class="conf-pct">89%</span></div></td>
+            </tr>
+            <tr>
+              <td class="mono">11:24</td>
+              <td><span class="lead-n">Siddharth V.</span></td>
+              <td><span class="type-fc">First connect</span></td>
+              <td class="mono">—</td>
+              <td><span class="ob ob-noans">No answer ×2</span></td>
+              <td><span class="mono" style="font-size:12px;">—</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11:19</td>
+              <td><span class="lead-n">Divya P.</span></td>
+              <td><span class="type-fc">First connect</span></td>
+              <td class="mono">1m 44s</td>
+              <td><span class="ob ob-booked">Booked</span></td>
+              <td><div class="conf-wrap"><div class="conf-bar-bg"><div class="conf-bar cb-high" style="width:96%"></div></div><span class="conf-pct">96%</span></div></td>
+            </tr>
+            <tr>
+              <td class="mono">11:15</td>
+              <td><span class="lead-n">Arjun B.</span></td>
+              <td><span class="type-ns">No-show rcvry</span></td>
+              <td class="mono">0m 35s</td>
+              <td><span class="ob ob-dnc">Opted out</span></td>
+              <td><div class="conf-wrap"><div class="conf-bar-bg"><div class="conf-bar cb-low" style="width:32%"></div></div><span class="conf-pct">32%</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FUNNEL -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Today's Funnel</span>
+        <span class="card-sub">Dia's scope only</span>
+      </div>
+      <div class="card-body">
+        <div class="funnel-rows">
+          <div class="funnel-row">
+            <div class="f-label">Leads received</div>
+            <div class="f-bar-wrap"><div class="f-bar f1"><span>Leads in</span><span>318</span></div></div>
+            <div class="f-pct">100%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="f-label">Called by Dia</div>
+            <div class="f-bar-wrap"><div class="f-bar f2"><span>Called</span><span>261</span></div></div>
+            <div class="f-pct">82%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="f-label">Connected</div>
+            <div class="f-bar-wrap"><div class="f-bar f3"><span>Connected</span><span>175</span></div></div>
+            <div class="f-pct">55%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="f-label">Booked</div>
+            <div class="f-bar-wrap"><div class="f-bar f4"><span>Booked</span><span>142</span></div></div>
+            <div class="f-pct">44%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="f-label">Advisor attended</div>
+            <div class="f-bar-wrap"><div class="f-bar f5"><span>Attended</span><span>88</span></div></div>
+            <div class="f-pct">28%</div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#9e9a90;margin-bottom:9px;">Connected call outcomes</div>
+        <div class="mini-bar-row">
+          <div class="mbr">
+            <div class="mb-lbl">Booked</div>
+            <div class="mb-track"><div class="mb-fill mb-g" style="width:81%;">81%</div></div>
+          </div>
+          <div class="mbr">
+            <div class="mb-lbl">Rescheduled</div>
+            <div class="mb-track"><div class="mb-fill mb-a" style="width:11%;">11%</div></div>
+          </div>
+          <div class="mbr">
+            <div class="mb-lbl">Opted out</div>
+            <div class="mb-track"><div class="mb-fill mb-r" style="width:8%;">8%</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Alerts</span>
+        <span class="card-sub" style="color:#d04040;font-weight:600;">3 need attention</span>
+      </div>
+      <div class="alert-feed">
+        <div class="alert-note">
+          <div class="anote-dot dot-red"></div>
+          <div class="anote-body">
+            <div class="anote-msg"><strong>No-show rate at 38%</strong> — above 30% limit. Recovery triggered for 47 leads.</div>
+            <div class="anote-ts">11:39 AM</div>
+          </div>
+          <span class="anote-action">auto-triggered</span>
+        </div>
+        <div class="alert-note">
+          <div class="anote-dot dot-amber"></div>
+          <div class="anote-body">
+            <div class="anote-msg"><strong>Contact rate slipped</strong> to 67% — 57 leads untouched for 90+ min.</div>
+            <div class="anote-ts">11:22 AM</div>
+          </div>
+          <span class="anote-action">needs review</span>
+        </div>
+        <div class="alert-note">
+          <div class="anote-dot dot-amber"></div>
+          <div class="anote-body">
+            <div class="anote-msg"><strong>5 calls escalated</strong> without booking — check transcripts for script gap.</div>
+            <div class="anote-ts">11:05 AM</div>
+          </div>
+          <span class="anote-action">check transcripts</span>
+        </div>
+        <div class="alert-note">
+          <div class="anote-dot dot-green"></div>
+          <div class="anote-body">
+            <div class="anote-msg"><strong>CSAT holding at 4.6/5</strong> across 84 surveys. No complaints flagged.</div>
+            <div class="anote-ts">10:55 AM</div>
+          </div>
+          <span class="anote-action" style="color:#1a5c30;background:#eaf4ed;border-color:#b2d8bc;">all good</span>
+        </div>
+        <div class="alert-note">
+          <div class="anote-dot dot-green"></div>
+          <div class="anote-body">
+            <div class="anote-msg"><strong>18h advisor time saved</strong> today — above the 15h weekly average.</div>
+            <div class="anote-ts">10:00 AM</div>
+          </div>
+          <span class="anote-action" style="color:#1a5c30;background:#eaf4ed;border-color:#b2d8bc;">milestone ✓</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /mid-grid -->
+
+  <!-- ── BOTTOM ROW ─────────────────── -->
+  <div class="section-row" style="margin-top:22px;">
+    <span class="section-lbl">Trends &amp; Team</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="bottom-grid">
+
+    <!-- HOURLY CHART + HEATMAP -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Hourly Volume &amp; Booking Rate</span>
+        <span class="card-sub">Today, 9 AM → now</span>
+      </div>
+      <div class="card-body">
+        <div class="mini-grid">
+          <div class="mini-stat">
+            <div class="ms-val">212</div>
+            <div class="ms-lbl">Calls made</div>
+          </div>
+          <div class="mini-stat">
+            <div class="ms-val">67%</div>
+            <div class="ms-lbl">Contact rate</div>
+          </div>
+          <div class="mini-stat">
+            <div class="ms-val">1m 18s</div>
+            <div class="ms-lbl">Avg duration</div>
+          </div>
+          <div class="mini-stat">
+            <div class="ms-val">8%</div>
+            <div class="ms-lbl">Opt-out rate</div>
+          </div>
+        </div>
+
+        <!-- BAR CHART SVG -->
+        <svg class="chart" viewBox="0 0 420 96" style="height:96px; margin-bottom:4px;">
+          <!-- grid -->
+          <line x1="0" y1="74" x2="420" y2="74" stroke="#eceae4" stroke-width="1"/>
+          <line x1="0" y1="50" x2="420" y2="50" stroke="#eceae4" stroke-width="1"/>
+          <line x1="0" y1="26" x2="420" y2="26" stroke="#eceae4" stroke-width="1"/>
+
+          <!-- 9 AM bar -->
+          <rect x="8"  y="38" width="30" height="36" rx="3" fill="#c8e6c9"/>
+          <rect x="8"  y="35" width="30" height="4"  rx="2" fill="#2e9c52"/>
+          <text x="23"  y="86" text-anchor="middle" fill="#b0ac9e" font-size="8.5" font-family="Courier New">9AM</text>
+          <text x="23"  y="32" text-anchor="middle" fill="#1a5c30" font-size="8"   font-family="Courier New">58</text>
+
+          <!-- 10 AM bar (peak) -->
+          <rect x="54" y="20" width="30" height="54" rx="3" fill="#c8e6c9"/>
+          <rect x="54" y="17" width="30" height="4"  rx="2" fill="#2e9c52"/>
+          <text x="69"  y="86" text-anchor="middle" fill="#b0ac9e" font-size="8.5" font-family="Courier New">10AM</text>
+          <text x="69"  y="14" text-anchor="middle" fill="#1a5c30" font-size="8"   font-family="Courier New">91</text>
+
+          <!-- 11 AM bar (in progress, amber) -->
+          <rect x="100" y="42" width="30" height="32" rx="3" fill="#fde9b8"/>
+          <rect x="100" y="39" width="30" height="4"  rx="2" fill="#e09c30"/>
+          <text x="115" y="86" text-anchor="middle" fill="#b0ac9e" font-size="8.5" font-family="Courier New">11AM</text>
+          <text x="115" y="36" text-anchor="middle" fill="#a05c00" font-size="8"   font-family="Courier New">63 ▸</text>
+
+          <!-- future slots (ghost outline) -->
+          <rect x="146" y="22" width="30" height="52" rx="3" fill="none" stroke="#e4e0d8" stroke-dasharray="3,2"/>
+          <text x="161" y="86" text-anchor="middle" fill="#dedad2" font-size="8.5" font-family="Courier New">12PM</text>
+          <rect x="192" y="18" width="30" height="56" rx="3" fill="none" stroke="#e4e0d8" stroke-dasharray="3,2"/>
+          <text x="207" y="86" text-anchor="middle" fill="#dedad2" font-size="8.5" font-family="Courier New">1PM</text>
+          <rect x="238" y="28" width="30" height="46" rx="3" fill="none" stroke="#e4e0d8" stroke-dasharray="3,2"/>
+          <text x="253" y="86" text-anchor="middle" fill="#dedad2" font-size="8.5" font-family="Courier New">2PM</text>
+          <rect x="284" y="32" width="30" height="42" rx="3" fill="none" stroke="#e4e0d8" stroke-dasharray="3,2"/>
+          <text x="299" y="86" text-anchor="middle" fill="#dedad2" font-size="8.5" font-family="Courier New">3PM</text>
+          <rect x="330" y="20" width="30" height="54" rx="3" fill="none" stroke="#e4e0d8" stroke-dasharray="3,2"/>
+          <text x="345" y="86" text-anchor="middle" fill="#dedad2" font-size="8.5" font-family="Courier New">4PM</text>
+          <rect x="376" y="24" width="30" height="50" rx="3" fill="none" stroke="#e4e0d8" stroke-dasharray="3,2"/>
+          <text x="391" y="86" text-anchor="middle" fill="#dedad2" font-size="8.5" font-family="Courier New">5PM</text>
+
+          <!-- booking rate trend line -->
+          <polyline points="23,46 69,34 115,48" fill="none" stroke="#1a3a6b" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.5"/>
+          <circle cx="23" cy="46" r="2.5" fill="#1a3a6b" opacity="0.5"/>
+          <circle cx="69" cy="34" r="2.5" fill="#1a3a6b" opacity="0.5"/>
+          <circle cx="115" cy="48" r="2.5" fill="#1a3a6b" opacity="0.5"/>
+
+          <!-- legend -->
+          <rect x="280" y="6" width="9" height="9" rx="1" fill="#c8e6c9"/>
+          <text x="293" y="14" fill="#9e9a90" font-size="8.5" font-family="Courier New">Calls</text>
+          <line x1="338" y1="10" x2="350" y2="10" stroke="#1a3a6b" stroke-width="1.5" stroke-dasharray="4,2"/>
+          <text x="354" y="14" fill="#9e9a90" font-size="8.5" font-family="Courier New">Booking%</text>
+        </svg>
+
+        <div class="sep"></div>
+
+        <div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#9e9a90;margin-bottom:8px;">Best calling windows (7-day booking rate)</div>
+        <div class="hmap">
+          <div class="hcell" title="8 AM: 48%" style="background:rgba(46,156,82,0.18);"></div>
+          <div class="hcell" title="9 AM: 62%" style="background:rgba(46,156,82,0.32);"></div>
+          <div class="hcell" title="10 AM: 71%" style="background:rgba(46,156,82,0.52);"></div>
+          <div class="hcell" title="11 AM: 69%" style="background:rgba(46,156,82,0.46);"></div>
+          <div class="hcell" title="12 PM: 42%" style="background:rgba(224,156,48,0.26);"></div>
+          <div class="hcell" title="1 PM: 38%"  style="background:rgba(224,156,48,0.20);"></div>
+          <div class="hcell" title="2 PM: 44%"  style="background:rgba(224,156,48,0.28);"></div>
+          <div class="hcell" title="3 PM: 58%"  style="background:rgba(46,156,82,0.28);"></div>
+          <div class="hcell" title="4 PM: 74%"  style="background:rgba(46,156,82,0.56);"></div>
+          <div class="hcell" title="5 PM: 78%"  style="background:rgba(46,156,82,0.64);"></div>
+          <div class="hcell" title="6 PM: 64%"  style="background:rgba(46,156,82,0.40);"></div>
+          <div class="hcell" title="7 PM: 52%"  style="background:rgba(46,156,82,0.28);"></div>
+        </div>
+        <div class="hmap-labels">
+          <span>8A</span><span>9</span><span>10</span><span>11</span><span>12P</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7P</span>
+        </div>
+        <div class="hmap-note">Peak windows: <strong style="color:#1a5c30;">10–11 AM</strong> and <strong style="color:#1a5c30;">4–5 PM</strong>. Avoid 12–2 PM.</div>
+      </div>
+    </div>
+
+    <!-- TRUST SIGNALS -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Trust &amp; Brand Signals</span>
+        <span class="card-sub">Rolling 24h</span>
+      </div>
+      <div class="card-body">
+        <div class="trust-rows">
+          <div class="trust-row">
+            <div class="tr-header">
+              <span class="tr-name">Post-call CSAT (Dia)</span>
+              <span class="tr-val" style="color:#1a5c30;">4.6 / 5</span>
+            </div>
+            <div class="tr-track"><div class="tr-fill tf-good" style="width:92%;"></div></div>
+          </div>
+          <div class="trust-row">
+            <div class="tr-header">
+              <span class="tr-name">Opt-out rate</span>
+              <span class="tr-val" style="color:#1a5c30;">8%</span>
+            </div>
+            <div class="tr-track"><div class="tr-fill tf-good" style="width:8%;"></div></div>
+          </div>
+          <div class="trust-row">
+            <div class="tr-header">
+              <span class="tr-name">"Is this AI?" asked</span>
+              <span class="tr-val" style="color:#a05c00;">14%</span>
+            </div>
+            <div class="tr-track"><div class="tr-fill tf-warn" style="width:14%;"></div></div>
+          </div>
+          <div class="trust-row">
+            <div class="tr-header">
+              <span class="tr-name">Continued after disclosure</span>
+              <span class="tr-val" style="color:#1a5c30;">88%</span>
+            </div>
+            <div class="tr-track"><div class="tr-fill tf-good" style="width:88%;"></div></div>
+          </div>
+          <div class="trust-row">
+            <div class="tr-header">
+              <span class="tr-name">Complaints / spam flags</span>
+              <span class="tr-val" style="color:#1a5c30;">0</span>
+            </div>
+            <div class="tr-track"><div class="tr-fill tf-good" style="width:1%;"></div></div>
+          </div>
+          <div class="trust-row">
+            <div class="tr-header">
+              <span class="tr-name">AI crossed script boundary</span>
+              <span class="tr-val" style="color:#1a5c30;">0</span>
+            </div>
+            <div class="tr-track"><div class="tr-fill tf-good" style="width:1%;"></div></div>
+          </div>
+          <div class="trust-row">
+            <div class="tr-header">
+              <span class="tr-name">Escalations (policy Q)</span>
+              <span class="tr-val" style="color:#a05c00;">5 today</span>
+            </div>
+            <div class="tr-track"><div class="tr-fill tf-warn" style="width:20%;"></div></div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+        <div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#9e9a90;margin-bottom:8px;">NPS after AI contact — 7 days</div>
+        <svg viewBox="0 0 200 44" style="width:100%;height:44px;overflow:visible;">
+          <polyline points="10,36 40,30 70,26 100,28 130,20 160,16 190,18"
+            fill="none" stroke="#2e9c52" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="10"  cy="36" r="3" fill="#fff" stroke="#2e9c52" stroke-width="1.5"/>
+          <circle cx="40"  cy="30" r="3" fill="#fff" stroke="#2e9c52" stroke-width="1.5"/>
+          <circle cx="70"  cy="26" r="3" fill="#fff" stroke="#2e9c52" stroke-width="1.5"/>
+          <circle cx="100" cy="28" r="3" fill="#fff" stroke="#2e9c52" stroke-width="1.5"/>
+          <circle cx="130" cy="20" r="3" fill="#fff" stroke="#2e9c52" stroke-width="1.5"/>
+          <circle cx="160" cy="16" r="3" fill="#fff" stroke="#2e9c52" stroke-width="1.5"/>
+          <circle cx="190" cy="18" r="3" fill="#fff" stroke="#e09c30" stroke-width="1.5"/>
+        </svg>
+        <div class="nps-lbl">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Today</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADVISOR QUEUE -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Advisor Queue</span>
+        <span class="card-sub">AI-booked · next 2 hrs</span>
+      </div>
+      <table class="adv-table">
+        <thead>
+          <tr>
+            <th>Advisor</th>
+            <th>Queued</th>
+            <th>Next call</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="adv-name-cell">
+                <div class="avatar" style="background:#2d5a3d;">SV</div>
+                <div>
+                  <div class="adv-nm">Shreya V.</div>
+                  <div class="adv-type">Health · Term</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="queue-num q-ok">8</span></td>
+            <td><span class="next-slot">11:50 AM</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="adv-name-cell">
+                <div class="avatar" style="background:#1a3a6b;">AM</div>
+                <div>
+                  <div class="adv-nm">Amit M.</div>
+                  <div class="adv-type">Term only</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="queue-num q-busy">12</span></td>
+            <td><span class="next-slot">11:45 AM</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="adv-name-cell">
+                <div class="avatar" style="background:#5a2020;">RK</div>
+                <div>
+                  <div class="adv-nm">Riya K.</div>
+                  <div class="adv-type">Health · Term</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="queue-num q-ok">6</span></td>
+            <td><span class="next-slot">12:00 PM</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="adv-name-cell">
+                <div class="avatar" style="background:#7a4f00;">PR</div>
+                <div>
+                  <div class="adv-nm">Prakash R.</div>
+                  <div class="adv-type">Health</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="queue-num q-over">18</span></td>
+            <td><span class="next-slot" style="color:#8b2020;font-weight:600;">Now ⚡</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="adv-name-cell">
+                <div class="avatar" style="background:#1a5a55;">NS</div>
+                <div>
+                  <div class="adv-nm">Nandini S.</div>
+                  <div class="adv-type">Term only</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="queue-num q-ok">5</span></td>
+            <td><span class="next-slot">12:30 PM</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="overload-note">
+        <div class="overload-text">Prakash is overloaded (18 calls). Move 6 to Shreya or Riya?</div>
+        <div class="btn-row">
+          <button class="btn btn-primary">Auto-redistribute</button>
+          <button class="btn btn-secondary">Review first</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /bottom-grid -->
+
+</div><!-- /page -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+  });
+});
+
+// Animate bars on load
+window.addEventListener('load', () => {
+  // funnel bars animate width from 0
+  document.querySelectorAll('.tr-fill').forEach((el, i) => {
+    const w = el.style.width;
+    el.style.width = '0%';
+    setTimeout(() => { el.style.transition = 'width 0.7s ease'; el.style.width = w; }, 200 + i * 60);
+  });
+  document.querySelectorAll('.mb-fill').forEach((el, i) => {
+    const w = el.style.width;
+    el.style.width = '0%';
+    setTimeout(() => { el.style.transition = 'width 0.6s ease'; el.style.width = w; }, 400 + i * 80);
+  });
+  document.querySelectorAll('.conf-bar').forEach((el, i) => {
+    const w = el.style.width;
+    el.style.width = '0%';
+    setTimeout(() => { el.style.transition = 'width 0.5s ease'; el.style.width = w; }, 100 + i * 40);
+  });
+});
+
+// Redistribute button
+document.querySelector('.btn-primary').addEventListener('click', function() {
+  this.textContent = '✓ Done';
+  this.style.background = '#2e9c52';
+  this.style.borderColor = '#2e9c52';
+  setTimeout(() => {
+    this.textContent = 'Auto-redistribute';
+    this.style.background = '#1f3d2b';
+    this.style.borderColor = '#1f3d2b';
+  }, 2500);
+});
+</script>
+</body>
+</html>
